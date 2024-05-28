@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.cluster import KMeans
 
+# 只是一个模版
 # 假设 ResNet3d 和 ResNet2d 都已经定义好或从 torchvision.models 中加载
 
 
