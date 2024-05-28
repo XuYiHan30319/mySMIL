@@ -27,7 +27,8 @@ def train():
             optimizer.step()
             if i % 100 == 0:
                 print(f"Epoch: {epoch}, Loss: {loss.item()}")
-    torch.save(model.state_dict(), "model.pth")
+        if epoch % 10 == 0:
+            torch.save(model.state_dict(), f"clean_net_{epoch}.pth")
 
 
 if __name__ == "__main__":
