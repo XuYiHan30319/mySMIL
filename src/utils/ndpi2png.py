@@ -101,9 +101,13 @@ def preprocess_ndpi(
     slide.close()
 
 
-# Example usage
-ndpi_path = "./PKG - UPENN-GBM_v2/NDPI_images/7316UP-109.ndpi"  # Path to your NDPI file
-output_folder = "output_slices"  # Folder to save the slices
-min_size = 100  # Minimum size of the blank region to be removed
-slice_size = 224  # Size of each slice
-preprocess_ndpi(ndpi_path, output_folder, min_size, slice_size)
+if __name__ == "__main__":
+    min_size = 100
+    slice_size = 224
+    path = "../../data/PKG - UPENN-GBM_v2/NDPI_images"
+    output_path = "../../data/PKG - UPENN-GBM_v2/NDPI_images_preprocessed"
+    for file in os.listdir(path):
+        if file.endswith(".ndpi"):
+            ndpi_path = os.path.join(path, file)
+            output_folder = os.path.join(output_path, file.split(".")[0])
+            preprocess_ndpi(ndpi_path, output_folder, min_size, slice_size)
