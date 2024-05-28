@@ -28,13 +28,13 @@ def remove_small_hole(mask, h_size=10):
 
 
 def preprocess_ndpi(
-    ndpi_path, output_folder, min_size=100, slice_size=224, tissue_threshold=0.3
+    ndpi_path, output_folder, min_size=100, slice_size=224, tissue_threshold=0.1
 ):
     # Open NDPI file
     slide = openslide.OpenSlide(ndpi_path)
 
     # Get level 2 dimensions
-    level_dimensions = slide.level_dimensions[3]
+    level_dimensions = slide.level_dimensions[2]
 
     # Read level 2 image
     level2_image = slide.read_region((0, 0), 2, level_dimensions)
