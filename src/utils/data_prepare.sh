@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # 指定文件夹路径
-input_dir="../../data/PKG_UPENN-GBM_v2/NDPI_images"
-base_output_dir="./../data/PKG_UPENN-GBM_v2/NDPI_images_processed"
-tile_size=360
+input_dir="../../data/PKG_UPENN_GBM_v2/NDPI_images"
+base_output_dir="../../data/PKG_UPENN_GBM_v2/NDPI_images_processed"
+tile_size=90
 n=1024
 out_size=224
 
