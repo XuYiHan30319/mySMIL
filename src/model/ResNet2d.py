@@ -197,7 +197,11 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x, mode="one"):
+        """_summary_
+        Args:
+            mode (str, optional): _description_. Defaults to "one",one就是正常训练,two是去掉分类层,到时候统一进行concat.
+        """
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -208,12 +212,18 @@ class ResNet(nn.Module):
         x = self.layer3(x)
         x = self.layer4(x)
 
-        if self.include_top:
-            x = self.avgpool(x)
-            x = torch.flatten(x, 1)
-            x = self.fc(x)
+        if mode == "one":
+            if self.include_top:
+                x = self.avgpool(x)
+                x = torch.flatten(x, 1)
+                x = self.fc(x)
 
-        return x
+            return x
+        elif mode == "two":
+            if self.include_top:
+                x = self.avgpool(x)
+                x = torch.flatten(x, 1)
+            return x
 
 
 def resnet34(num_classes=1000, include_top=True):
@@ -263,3 +273,17 @@ def resnext101_32x8d(num_classes=1000, include_top=True):
         groups=groups,
         width_per_group=width_per_group,
     )
+
+
+def generate_model(net=50, num_class=2):
+    assert net in [34, 50, 101]
+    if net == 50:
+        return resnet50(num_class)
+    elif net == 34:
+        return resnet34(num_class)
+    elif net == 101:
+        return resnet101(num_class)
+
+
+if __name__ == "__main__":
+    generate_model(50, 2)

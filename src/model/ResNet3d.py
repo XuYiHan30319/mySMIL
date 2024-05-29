@@ -104,7 +104,7 @@ class ResNet(nn.Module):
         no_max_pool=False,
         shortcut_type="B",
         widen_factor=1.0,
-        n_classes=400,
+        n_classes=2,
     ):
         super().__init__()
 
@@ -189,7 +189,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x, mode="one"):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -204,6 +204,8 @@ class ResNet(nn.Module):
         x = self.avgpool(x)
 
         x = x.view(x.size(0), -1)
+        if mode == "two":
+            return x
         x = self.fc(x)
 
         return x
