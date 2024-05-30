@@ -1,5 +1,6 @@
 import os
 from multiprocessing import Pool
+from tqdm import tqdm
 
 
 def process_file(input_file, base_output_dir, tile_size, n, out_size):
@@ -17,12 +18,16 @@ def process_file(input_file, base_output_dir, tile_size, n, out_size):
     os.system(command)
 
 
+def process_file_wrapper(args):
+    return process_file(*args)
+
+
 if __name__ == "__main__":
     # 指定文件夹路径
     input_dir = "../../data/PKG_CPTAC_LUAD_v12/LUAD"
     base_output_dir = "../../data/PKG_CPTAC_LUAD_v12/LUAD_processed"
     tile_size = 125
-    n = 128
+    n = 32
     out_size = 224
 
     # 检查输入目录是否存在
@@ -43,9 +48,14 @@ if __name__ == "__main__":
 
     # 并行处理文件
     with Pool() as pool:
-        pool.starmap(
-            process_file,
-            [(file, base_output_dir, tile_size, n, out_size) for file in input_files],
-        )
+        with tqdm(total=len(input_files)) as pbar:
+            for _ in pool.imap_unordered(
+                process_file_wrapper,
+                [
+                    (file, base_output_dir, tile_size, n, out_size)
+                    for file in input_files
+                ],
+            ):
+                pbar.update()
 
     print("所有文件处理完毕！")

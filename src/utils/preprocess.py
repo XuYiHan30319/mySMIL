@@ -171,7 +171,7 @@ def create_tissue_tiles(
     wsi, tissue_mask_scaled, tile_size_microns, offsets_micron=None
 ):
 
-    print(f"tile size is {tile_size_microns} um")
+    # print(f"tile size is {tile_size_microns} um")
 
     # Compute the tile size in pixels from the desired tile size in microns and the image resolution
     assert (

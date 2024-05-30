@@ -5,7 +5,6 @@ import torch
 import numpy as np
 from PIL import Image
 import random
-from model import *
 import matplotlib.pyplot as plt
 from scipy.ndimage import zoom
 
@@ -34,7 +33,7 @@ class PathologyDataset(data.Dataset):
         self.p = p
         self.img_list = []
         for i in range(2):
-            tpath = os.path.join(path, mode, str(i))
+            tpath = os.path.join(path, str(i))
             for folder_name, _, files in os.walk(tpath):
                 for file in files:
                     subfolder_path = os.path.join(folder_name, file)
@@ -55,11 +54,15 @@ class PathologyDataset(data.Dataset):
                 ]
             )
             transformed = np.array(transforms(image=array)["image"])
+            # 保存下来看看
         else:
             transformed = array
-        normalized_tensor = torch.from_numpy(transformed).float()
+        normalized_tensor = torch.tensor(transformed, dtype=torch.float).permute(
+            2, 0, 1
+        )
         return normalized_tensor, self.img_list[index][1]
 
 
 if __name__ == "__main__":
-    PathologyDataset("../../data/pathology_img_data/train")
+    data = PathologyDataset("../../data/pathology_img_data/train")
+    print(data.__len__())

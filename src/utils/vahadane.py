@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import time
 import os
+from tqdm import tqdm
 
 
 class vahadane(object):
@@ -103,7 +104,7 @@ class vahadane(object):
             W = np.mean(W, axis=0)
             V0, V = self.getV(img)
             H = self.getH(V0, W)
-        print("stain separation time:", time.time() - start, "s")
+        # print("stain separation time:", time.time() - start, "s")
         return W, H
 
     def SPCN(self, img, Ws, Hs, Wt, Ht):
@@ -121,23 +122,28 @@ if __name__ == "__main__":
     target_image = cv2.imread("../../data/target.png")
     target_image = cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB)
 
+    # 先收集所有文件
+    all_files = []
     for folder_name, _, files in os.walk(path):
         for file in files:
-            # 初始化 vahadane 对象
-            vahadane_obj = vahadane()
+            all_files.append(os.path.join(folder_name, file))
 
-            img_path = os.path.join(folder_name, file)
-            source_image = cv2.imread(img_path)
-            source_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2RGB)
+    # 处理所有文件并显示整体进度
+    for img_path in tqdm(all_files, desc="Processing images"):
+        # 初始化 vahadane 对象
+        vahadane_obj = vahadane()
 
-            # 分离源图片和目标图片的染色基矩阵和染色浓度矩阵
-            Ws, Hs = vahadane_obj.stain_separate(source_image)
-            Wt, Ht = vahadane_obj.stain_separate(target_image)
+        source_image = cv2.imread(img_path)
+        source_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2RGB)
 
-            # 将源图片的染色浓度矩阵和目标图片的染色基矩阵进行匹配
-            normalized_image = vahadane_obj.SPCN(source_image, Ws, Hs, Wt, Ht)
+        # 分离源图片和目标图片的染色基矩阵和染色浓度矩阵
+        Ws, Hs = vahadane_obj.stain_separate(source_image)
+        Wt, Ht = vahadane_obj.stain_separate(target_image)
 
-            # 保存匹配后的图片
-            normalized_image_bgr = cv2.cvtColor(normalized_image, cv2.COLOR_RGB2BGR)
-            # 覆盖原图片
-            cv2.imwrite(img_path, normalized_image_bgr)
+        # 将源图片的染色浓度矩阵和目标图片的染色基矩阵进行匹配
+        normalized_image = vahadane_obj.SPCN(source_image, Ws, Hs, Wt, Ht)
+
+        # 保存匹配后的图片
+        normalized_image_bgr = cv2.cvtColor(normalized_image, cv2.COLOR_RGB2BGR)
+        # 覆盖原图片
+        cv2.imwrite(img_path, normalized_image_bgr)

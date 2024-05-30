@@ -27,17 +27,15 @@ def train(path=""):
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    initial_learning_rate = 4e-4
+    initial_learning_rate = 1e-3
     optimizer = optim.Adam(model.parameters(), initial_learning_rate, betas=(0.9, 0.99))
-    # scheduler = torch.optim.lr_scheduler.StepLR(
-    #     optimizer, step_size=step_size, gamma=gamma
-    # )
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.9)
     num_epochs = 5000
     save_path = "./model/"  # 这里是保存路径
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-    train_dataset = PathologyDataset(path="")  # TODO:这里需要载入路径
-    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=8)
+    train_dataset = PathologyDataset()
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=16)
     batchs = len(train_loader)
     for epoch in range(lunshu, num_epochs):
         model.train()
@@ -53,10 +51,10 @@ def train(path=""):
                 loss.backward()
                 optimizer.step()
                 running_loss += loss.item() * data.size(0)
-                if (i + 1) % 10 == 0:
+                if (i + 1) % 5 == 0:
                     pbar.set_postfix({"loss": loss.item()})
                 pbar.update(1)
-        # scheduler.step(epoch)
+        scheduler.step(epoch)
         epoch_loss = running_loss / len(train_loader.dataset)
 
         print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss:.6f}")
@@ -119,6 +117,6 @@ def eval(model_path="", dataset_path=""):
 
 
 if __name__ == "__main__":
-    # train()
-    test()
+    train()
+    # test()
     # eval()

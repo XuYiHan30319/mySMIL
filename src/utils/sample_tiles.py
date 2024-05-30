@@ -61,9 +61,9 @@ filtered_tiles = [
 # When the number of tiles to sample is greater than or equal to the total number of tiles in the slide, we take all of them.
 sampled_tiles = random.sample(filtered_tiles, min(args.n, len(filtered_tiles)))
 
-print(
-    f"Sampled {len(sampled_tiles)} tiles out of {len(filtered_tiles)} non-empty tiles."
-)
+# print(
+#     f"Sampled {len(sampled_tiles)} tiles out of {len(filtered_tiles)} non-empty tiles."
+# )
 
 # Build a figure for quality control purposes, to check if the tiles are where we expect them.
 qc_img = make_tile_QC_fig(filtered_tiles, wsi, seg_level, 2, extra_tiles=sampled_tiles)
