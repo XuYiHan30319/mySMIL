@@ -2,6 +2,7 @@ import spams
 import numpy as np
 import cv2
 import time
+import os
 
 
 class vahadane(object):
@@ -115,28 +116,28 @@ class vahadane(object):
         return I
 
 
-# 初始化 vahadane 对象
-vahadane_obj = vahadane()
+if __name__ == "__main__":
+    path = "../../data/pathology_img_data"
+    target_image = cv2.imread("../../data/target.png")
+    target_image = cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB)
 
-# 加载源图片和目标图片
-source_image = cv2.imread(
-    "../../data/PKG_UPENN_GBM_v2/NDPI_images_processed/7316UP-109/train/7316UP-109/7316UP-109_tile_10.png"
-)
-target_image = cv2.imread(
-    "../../data/PKG_UPENN_GBM_v2/NDPI_images_processed/7316UP-1110/train/7316UP-1110/7316UP-1110_tile_103.png"
-)
+    for folder_name, _, files in os.walk(path):
+        for file in files:
+            # 初始化 vahadane 对象
+            vahadane_obj = vahadane()
 
-# 确保图片是RGB格式
-source_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2RGB)
-target_image = cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB)
+            img_path = os.path.join(folder_name, file)
+            source_image = cv2.imread(img_path)
+            source_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2RGB)
 
-# 分离源图片和目标图片的染色基矩阵和染色浓度矩阵
-Ws, Hs = vahadane_obj.stain_separate(source_image)
-Wt, Ht = vahadane_obj.stain_separate(target_image)
+            # 分离源图片和目标图片的染色基矩阵和染色浓度矩阵
+            Ws, Hs = vahadane_obj.stain_separate(source_image)
+            Wt, Ht = vahadane_obj.stain_separate(target_image)
 
-# 将源图片的染色浓度矩阵和目标图片的染色基矩阵进行匹配
-normalized_image = vahadane_obj.SPCN(source_image, Ws, Hs, Wt, Ht)
+            # 将源图片的染色浓度矩阵和目标图片的染色基矩阵进行匹配
+            normalized_image = vahadane_obj.SPCN(source_image, Ws, Hs, Wt, Ht)
 
-# 保存匹配后的图片
-normalized_image_bgr = cv2.cvtColor(normalized_image, cv2.COLOR_RGB2BGR)
-cv2.imwrite("normalized_image.jpg", normalized_image_bgr)
+            # 保存匹配后的图片
+            normalized_image_bgr = cv2.cvtColor(normalized_image, cv2.COLOR_RGB2BGR)
+            # 覆盖原图片
+            cv2.imwrite(img_path, normalized_image_bgr)

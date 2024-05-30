@@ -29,7 +29,7 @@ def normalize(img):
 
 
 class PathologyDataset(data.Dataset):
-    def __init__(self, path="../Data/2class", mode="train", p=0.5):
+    def __init__(self, path="../data/pathology_img_data/train", mode="train", p=0.5):
         self.mode = mode
         self.p = p
         self.img_list = []
@@ -59,3 +59,7 @@ class PathologyDataset(data.Dataset):
             transformed = array
         normalized_tensor = torch.from_numpy(transformed).float()
         return normalized_tensor, self.img_list[index][1]
+
+
+if __name__ == "__main__":
+    PathologyDataset("../../data/pathology_img_data/train")
