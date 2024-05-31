@@ -91,7 +91,7 @@ def eval(model_path=""):
     model.eval()
 
     # 载入数据集
-    eval_dataset = PathologyDataset(mode="train")  # 这里传入数据集路径
+    eval_dataset = PathologyDataset(mode="test")  # 这里传入数据集路径
     eval_loader = DataLoader(
         eval_dataset, batch_size=128, shuffle=False, num_workers=16
     )
