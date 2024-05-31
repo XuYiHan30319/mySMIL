@@ -28,16 +28,20 @@ def normalize(img):
 
 
 class PathologyDataset(data.Dataset):
-    def __init__(self, path="../data/pathology_img_data/train", mode="train", p=0.5):
+    def __init__(self, path="../data/pathology_img_data/", mode="train", p=0.5):
         self.mode = mode
         self.p = p
         self.img_list = []
+        path = os.path.join(path, mode)
+        l = 0
         for i in range(2):
             tpath = os.path.join(path, str(i))
             for folder_name, _, files in os.walk(tpath):
                 for file in files:
                     subfolder_path = os.path.join(folder_name, file)
                     self.img_list.append((subfolder_path, i))
+            print(f"{i}的个数为:{len(self.img_list)-l}")
+            l = len(self.img_list)
 
     def __len__(self):
         return len(self.img_list)

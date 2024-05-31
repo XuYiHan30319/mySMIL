@@ -9,7 +9,7 @@ from model.ResNet2d import generate_model
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from dataset.PathologyDataset import PathologyDataset
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix
 import numpy as np
 
 
@@ -27,15 +27,17 @@ def train(path=""):
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    initial_learning_rate = 1e-3
+    initial_learning_rate = 1e-4
     optimizer = optim.Adam(model.parameters(), initial_learning_rate, betas=(0.9, 0.99))
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.9)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.8)
     num_epochs = 5000
-    save_path = "./model/"  # 这里是保存路径
+    save_path = "../model/"  # 这里是保存路径
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     train_dataset = PathologyDataset()
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=16)
+    train_loader = DataLoader(
+        train_dataset, batch_size=128, shuffle=True, num_workers=16
+    )
     batchs = len(train_loader)
     for epoch in range(lunshu, num_epochs):
         model.train()
@@ -54,7 +56,7 @@ def train(path=""):
                 if (i + 1) % 5 == 0:
                     pbar.set_postfix({"loss": loss.item()})
                 pbar.update(1)
-        scheduler.step(epoch)
+        scheduler.step()
         epoch_loss = running_loss / len(train_loader.dataset)
 
         print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss:.6f}")
@@ -79,18 +81,20 @@ def test():
     print(res.shape)
 
 
-def eval(model_path="", dataset_path=""):
+def eval(model_path=""):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # 载入模型
     model = generate_model(50, 2)
-    model.load_state_dict(torch.load(model_path))
+    model.load_state_dict(torch.load(model_path, map_location=device))
     model = model.to(device)
     model.eval()
 
     # 载入数据集
-    eval_dataset = PathologyDataset(path=dataset_path)  # 这里传入数据集路径
-    eval_loader = DataLoader(eval_dataset, batch_size=16, shuffle=False, num_workers=8)
+    eval_dataset = PathologyDataset(mode="train")  # 这里传入数据集路径
+    eval_loader = DataLoader(
+        eval_dataset, batch_size=128, shuffle=False, num_workers=16
+    )
 
     # 准备评价指标
     all_targets = []
@@ -108,15 +112,30 @@ def eval(model_path="", dataset_path=""):
     # 计算每个类的准确率
     all_targets = np.array(all_targets)
     all_predictions = np.array(all_predictions)
+    print(model_path)
 
+    # 计算整体准确率
+    overall_accuracy = accuracy_score(all_targets, all_predictions)
+    print(f"Overall Accuracy: {overall_accuracy:.4f}")
+
+    # 计算每个类的准确率
     for class_index in range(2):
-        class_targets = (all_targets == class_index).astype(int)
-        class_predictions = (all_predictions == class_index).astype(int)
+        class_mask = all_targets == class_index
+        class_targets = all_targets[class_mask]
+        class_predictions = all_predictions[class_mask]
         accuracy = accuracy_score(class_targets, class_predictions)
         print(f"Class {class_index} Accuracy: {accuracy:.4f}")
 
 
+def eval_folder(path=""):
+    model_list = os.listdir(path)
+    model_list.sort()
+    for model in model_list:
+        eval(model_path=os.path.join(path, model))
+
+
 if __name__ == "__main__":
-    train()
+    # train("../model/resnet50_epoch_200.pth")
     # test()
     # eval()
+    eval_folder("../model/resnet50")
