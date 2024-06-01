@@ -55,7 +55,9 @@ def train(path=""):
                 optimizer.zero_grad()
                 classification_output = model(data)
                 loss = criterion(classification_output, target)
-                loss2 = criterion(
+                # 对target进行onehot编码
+                target = torch.nn.functional.one_hot(target, num_classes=2).float()
+                loss2 = criterion2(
                     classification_output, target, alpha=0.8, gamma=2, reduction="mean"
                 )
                 loss = loss + loss2
