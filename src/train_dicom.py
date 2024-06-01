@@ -31,13 +31,13 @@ def train(path=""):
     optimizer = optim.Adam(
         model.parameters(), initial_learning_rate, betas=(0.9, 0.99), weight_decay=0.001
     )
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.9)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.8)
     num_epochs = 5000
     save_path = "../model/resnet503d/"  # 这里是保存路径
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     train_dataset = Dataset3d(path="../data/lung_dicom")
-    train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True, num_workers=8)
+    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, num_workers=16)
     batchs = len(train_loader)
     for epoch in range(lunshu, num_epochs):
         model.train()
@@ -91,7 +91,9 @@ def eval(model_path=""):
     model.eval()
 
     # 载入数据集
-    eval_dataset = Dataset3d(path="../data/lung_dicom",mode="test")  # 这里传入数据集路径
+    eval_dataset = Dataset3d(
+        path="../data/lung_dicom", mode="test"
+    )  # 这里传入数据集路径
     eval_loader = DataLoader(eval_dataset, batch_size=4, shuffle=False, num_workers=16)
 
     # 准备评价指标
@@ -133,6 +135,6 @@ def eval_folder(path=""):
 
 
 if __name__ == "__main__":
-    # train()
+    train()
     # test()
-    eval_folder("../model/resnet503d")
+    # eval_folder("../model/resnet503d")

@@ -47,6 +47,9 @@ class Dataset3d(data.Dataset):
         img = sitk.ReadImage(self.img_list[index][0])
         img_list = sitk.GetArrayFromImage(img)
         img_list = np.array(img_list)
+        if img_list.shape[-1] == 3:
+            # 如果图像是彩色的，计算最后一个维度（颜色通道）的平均值
+            img_list = np.mean(img_list, axis=-1)
         img_list = normalize(img_list)
         # transforms = Compose(
         #     [

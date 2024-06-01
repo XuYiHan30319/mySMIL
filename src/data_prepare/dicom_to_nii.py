@@ -1,8 +1,9 @@
 import SimpleITK as sitk
 import os
+import concurrent.futures
 
 
-def resampleToFixedSize(sitkImage, target_size=(224, 224, 100)):
+def resampleToFixedSize(sitkImage, target_size=(256, 256, 50)):
     """
     将图像缩放到固定尺寸
     """
@@ -35,18 +36,24 @@ def resampleToFixedSize(sitkImage, target_size=(224, 224, 100)):
     return sitkImage
 
 
+def process_directory(root):
+    reader = sitk.ImageSeriesReader()
+    dicom_names = reader.GetGDCMSeriesFileNames(root)
+    # 如果大小不是512*512就跳过
+    reader.SetFileNames(dicom_names)
+    image = reader.Execute()
+    print(image.GetSize())
+    if image.GetSize()[:2] != (512, 512):
+        return
+    image = resampleToFixedSize(image)
+    sitk.WriteImage(image, root + ".nii")
+
+
 if __name__ == "__main__":
     path = "../../data/lung_dicom"
     # 把dicom文件转换为nii文件
-    for root, dirs, files in os.walk(path):
-        if files.__len__() == 0:
-            continue
-        # print(root)
-        reader = sitk.ImageSeriesReader()
-        dicom_names = reader.GetGDCMSeriesFileNames(root)
-        # 打印尺寸
-        reader.SetFileNames(dicom_names)
-        image = reader.Execute()
-        print(image.GetSize())
-        image = resampleToFixedSize(image)
-        sitk.WriteImage(image, root + ".nii")
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        for root, dirs, files in os.walk(path):
+            if len(files) == 0:
+                continue
+            executor.submit(process_directory, root)
