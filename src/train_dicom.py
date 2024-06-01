@@ -11,6 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 from dataset.DicomDataset import Dataset3d
 from sklearn.metrics import accuracy_score
 import numpy as np
+from torchvision.ops import sigmoid_focal_loss
 
 
 def train(path=""):
@@ -27,17 +28,21 @@ def train(path=""):
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    initial_learning_rate = 1e-2
+    criterion2 = sigmoid_focal_loss
+    initial_learning_rate = 3e-4
     optimizer = optim.Adam(
         model.parameters(), initial_learning_rate, betas=(0.9, 0.99), weight_decay=0.001
     )
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.8)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.8)
     num_epochs = 5000
     save_path = "../model/resnet503d/"  # 这里是保存路径
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     train_dataset = Dataset3d(path="../data/lung_dicom")
     train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, num_workers=16)
+
+    test_dataset = Dataset3d("../data/lung_dicom", "test")
+    test_loader = DataLoader(test_dataset, batch_size=4, shuffle=True, num_workers=16)
     batchs = len(train_loader)
     for epoch in range(lunshu, num_epochs):
         model.train()
@@ -50,6 +55,10 @@ def train(path=""):
                 optimizer.zero_grad()
                 classification_output = model(data)
                 loss = criterion(classification_output, target)
+                loss2 = criterion(
+                    classification_output, target, alpha=0.8, gamma=2, reduction="mean"
+                )
+                loss = loss + loss2
                 loss.backward()
                 optimizer.step()
                 running_loss += loss.item() * data.size(0)
@@ -58,15 +67,46 @@ def train(path=""):
                 pbar.update(1)
         scheduler.step()
         epoch_loss = running_loss / len(train_loader.dataset)
-
         print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss:.6f}")
+
+        if epoch_loss < 0.2:
+            # 测试模型准确率
+            model.eval()
+            # 准备评价指标
+            all_targets = []
+            all_predictions = []
+
+            with torch.no_grad():
+                for data, target in test_loader:
+                    data, target = data.to(device), target.to(device)
+                    outputs = model(data)
+                    _, predicted = torch.max(outputs, 1)
+
+                    all_targets.extend(target.cpu().numpy())
+                    all_predictions.extend(predicted.cpu().numpy())
+
+            # 计算每个类的准确率
+            all_targets = np.array(all_targets)
+            all_predictions = np.array(all_predictions)
+
+            # 计算整体准确率
+            overall_accuracy = accuracy_score(all_targets, all_predictions)
+            print(f"Overall Accuracy: {overall_accuracy:.4f}")
+
+            # 计算每个类的准确率
+            for class_index in range(2):
+                class_mask = all_targets == class_index
+                class_targets = all_targets[class_mask]
+                class_predictions = all_predictions[class_mask]
+                accuracy = accuracy_score(class_targets, class_predictions)
+                print(f"Class {class_index} Accuracy: {accuracy:.4f}")
+
         if (epoch + 1) % 10 == 0:
             model_save_name = f"resnet503d_epoch_{epoch + 1}.pth"
             if not os.path.exists(save_path):
                 os.makedirs(save_path)
             torch.save(model.state_dict(), os.path.join(save_path, model_save_name))
             print(f"Model saved as {model_save_name}")
-
         # 将损失写入TensorBoard
         writer.add_scalar("Loss/train", epoch_loss, epoch)
 
@@ -137,4 +177,5 @@ def eval_folder(path=""):
 if __name__ == "__main__":
     train()
     # test()
+    # eval("../model/resnet503d/resnet503d_epoch_100.pth")
     # eval_folder("../model/resnet503d")
