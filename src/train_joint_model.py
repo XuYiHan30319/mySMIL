@@ -5,30 +5,35 @@ import os
 import torch
 import torch.nn as nn
 from tqdm import tqdm
-from model.ResNet3d import generate_model
+from model.JointModel import JointModel
+from model.ResNet2d import generate_model as generate_model2d
+from model.ResNet3d import generate_model as generate_model3d
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from dataset.DicomDataset import Dataset3d
+from dataset.JointDataset import JointDataset
 from sklearn.metrics import accuracy_score
 import numpy as np
 from torchvision.ops import sigmoid_focal_loss
 
 
-def train(path=""):
+def train(path="", model3d_path="", model2d_path=""):
     torch.autograd.set_detect_anomaly(True)
     writer = SummaryWriter()
-    model = generate_model(50)
+    model = JointModel(generate_model2d(50), generate_model3d(50))
     if path != "":
         model.load_state_dict(torch.load(path))
         lunshu = int(path.split("_")[-1].split(".")[0])
         print(f"load model {lunshu} success")
     else:
         lunshu = 0
+    if model3d_path != "":
+        model.dicom_model.load_state_dict(torch.load(model3d_path))
+    if model2d_path != "":
+        model.pathology_model.load_state_dict(torch.load(model2d_path))
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
-
     criterion = nn.CrossEntropyLoss()
-    criterion2 = sigmoid_focal_loss
     initial_learning_rate = 3e-4
     optimizer = optim.Adam(
         model.parameters(), initial_learning_rate, betas=(0.9, 0.99), weight_decay=0.001
@@ -39,35 +44,40 @@ def train(path=""):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
-    test_dataset = Dataset3d("../data/lung_dicom", "test")
+    test_dataset = JointDataset(
+        "../data/lung_dicom",
+        "../data/pathology_img_data",
+        "../data/tcia-luad-lusc-cohort.csv",
+        "test",
+    )
     test_loader = DataLoader(test_dataset, batch_size=4, shuffle=True, num_workers=16)
 
-    train_dataset = Dataset3d(path="../data/lung_dicom", rand=True)
+    train_dataset = test_dataset = JointDataset(
+        "../data/lung_dicom",
+        "../data/pathology_img_data",
+        "../data/tcia-luad-lusc-cohort.csv",
+        "train",
+    )
     train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, num_workers=16)
     batchs = len(train_loader)
     for epoch in range(lunshu, num_epochs):
-
         model.train()
         running_loss = 0.0
         with tqdm(
             total=batchs, desc=f"Epoch {epoch + 1}/{num_epochs}", unit="batch"
         ) as pbar:
-            for i, (data, target) in enumerate(train_loader):
-                data, target = data.to(device), target.to(device)
-                optimizer.zero_grad()
-                classification_output = model(data)
-                loss = criterion(classification_output, target)
-                # 对target进行onehot编码
-                target = torch.nn.functional.one_hot(target, num_classes=2).float()
-                loss2 = criterion2(
-                    classification_output, target, alpha=0.6, gamma=2, reduction="mean"
+            for i, (data3d, data2d, target) in enumerate(train_loader):
+                data3d, data2d, target = (
+                    data3d.to(device),
+                    data2d.to(device),
+                    target.to(device),
                 )
-                loss = loss + loss2
+                optimizer.zero_grad()
+                classification_output = model(data3d, data2d)
+                loss = criterion(classification_output, target)
                 loss.backward()
                 optimizer.step()
-                running_loss += loss.item() * data.size(0)
-                if (i + 1) % 10 == 0:
-                    pbar.set_postfix({"loss": loss.item()})
+                running_loss += loss.item()
                 pbar.update(1)
         scheduler.step()
         epoch_loss = running_loss / len(train_loader.dataset)
@@ -81,9 +91,13 @@ def train(path=""):
             all_predictions = []
 
             with torch.no_grad():
-                for data, target in test_loader:
-                    data, target = data.to(device), target.to(device)
-                    outputs = model(data)
+                for data3d, data2d, target in test_loader:
+                    data3d, data2d, target = (
+                        data3d.to(device),
+                        data2d.to(device),
+                        target.to(device),
+                    )
+                    outputs = model(data3d, data2d)
                     _, predicted = torch.max(outputs, 1)
 
                     all_targets.extend(target.cpu().numpy())
@@ -118,36 +132,29 @@ def train(path=""):
     writer.close()
 
 
-def test():
-    model = generate_model(50).to("cuda:0")
-    sample = torch.rand(1, 3, 96, 224, 224).to("cuda:0")
-    res = model.forward(sample, mode="two")
-    print(res.shape)
-
-
-def eval(model_path=""):
+def eval(path=""):
+    model = JointModel(generate_model2d(50), generate_model3d(50))
+    model.load_state_dict(torch.load(path))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    # 载入模型
-    model = generate_model(50)
-    model.load_state_dict(torch.load(model_path, map_location=device))
     model = model.to(device)
+    test_dataset = JointDataset(
+        "../data/lung_dicom",
+        "../data/pathology_img_data",
+        "../data/tcia-luad-lusc-cohort.csv",
+        "test",
+    )
+    test_loader = DataLoader(test_dataset, batch_size=4, shuffle=True, num_workers=16)
     model.eval()
-
-    # 载入数据集
-    eval_dataset = Dataset3d(
-        path="../data/lung_dicom", mode="test"
-    )  # 这里传入数据集路径
-    eval_loader = DataLoader(eval_dataset, batch_size=4, shuffle=False, num_workers=16)
-
-    # 准备评价指标
     all_targets = []
     all_predictions = []
-
     with torch.no_grad():
-        for data, target in eval_loader:
-            data, target = data.to(device), target.to(device)
-            outputs = model(data)
+        for data3d, data2d, target in test_loader:
+            data3d, data2d, target = (
+                data3d.to(device),
+                data2d.to(device),
+                target.to(device),
+            )
+            outputs = model(data3d, data2d)
             _, predicted = torch.max(outputs, 1)
 
             all_targets.extend(target.cpu().numpy())
@@ -156,7 +163,6 @@ def eval(model_path=""):
     # 计算每个类的准确率
     all_targets = np.array(all_targets)
     all_predictions = np.array(all_predictions)
-    print(model_path)
 
     # 计算整体准确率
     overall_accuracy = accuracy_score(all_targets, all_predictions)

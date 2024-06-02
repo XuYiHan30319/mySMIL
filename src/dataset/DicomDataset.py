@@ -25,6 +25,7 @@ class Dataset3d(data.Dataset):
         self,
         path="../../data/lung_dicom",
         mode="train",
+        rand=False,
     ):
         self.mode = mode
         self.img_list = []
@@ -38,7 +39,11 @@ class Dataset3d(data.Dataset):
         for root, dirs, files in os.walk(os.path.join(path, "1")):
             for file in files:
                 if file.endswith(".nii"):
-                    self.img_list.append([os.path.join(root, file), 1])
+                    if mode == "train" and rand:
+                        if np.random.rand() < 0.3:
+                            self.img_list.append([os.path.join(root, file), 1])
+                    else:
+                        self.img_list.append([os.path.join(root, file), 1])
         print("1的个数为:", len(self.img_list) - l)
 
     def __len__(self):
@@ -69,7 +74,11 @@ class Dataset3d(data.Dataset):
         # 保存下来看看
         if self.mode == "train":
             normalized_tensor = transforms(img_list).float()
-        img_list = np.array(img_list)[np.newaxis, ...]  # .transpose(1, 0, 2, 3)
+        else:
+            normalized_tensor = img_list
+        img_list = np.array(normalized_tensor)[
+            np.newaxis, ...
+        ]  # .transpose(1, 0, 2, 3)
         normalized_tensor = torch.from_numpy(img_list).float()
         return normalized_tensor, self.img_list[index][1]
 

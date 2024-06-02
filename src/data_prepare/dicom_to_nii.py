@@ -52,8 +52,10 @@ def process_directory(root):
 if __name__ == "__main__":
     path = "../../data/lung_dicom"
     # 把dicom文件转换为nii文件
+    # 找到所有的dicom文件夹
+    dicom_dirs = []
+    for root, dirs, files in os.walk(path):
+        if len(files) > 0:
+            dicom_dirs.append(root)
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        for root, dirs, files in os.walk(path):
-            if len(files) == 0:
-                continue
-            executor.submit(process_directory, root)
+        executor.map(process_directory, dicom_dirs)
