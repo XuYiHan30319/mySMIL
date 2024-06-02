@@ -29,11 +29,11 @@ def train(path=""):
 
     criterion = nn.CrossEntropyLoss()
     criterion2 = sigmoid_focal_loss
-    initial_learning_rate = 3e-4
+    initial_learning_rate = 4e-5
     optimizer = optim.Adam(
         model.parameters(), initial_learning_rate, betas=(0.9, 0.99), weight_decay=0.001
     )
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.8)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.8)
     num_epochs = 5000
     save_path = "../model/resnet503d/"  # 这里是保存路径
     if not os.path.exists(save_path):
@@ -179,7 +179,12 @@ def eval_folder(path=""):
 
 
 if __name__ == "__main__":
-    train()
+    # train("../model/resnet503d/resnet503d_epoch_250.pth")
     # test()
     # eval("../model/resnet503d/resnet503d_epoch_100.pth")
-    # eval_folder("../model/resnet503d")
+    eval_folder("../model/resnet503d")
+    
+# ../model/resnet503d/resnet503d_epoch_380.pth
+# Overall Accuracy: 0.7188
+# Class 0 Accuracy: 0.7333
+# Class 1 Accuracy: 0.7143

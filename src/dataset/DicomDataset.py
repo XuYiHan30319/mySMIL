@@ -65,13 +65,12 @@ class Dataset3d(data.Dataset):
             [
                 RandRotate(
                     range_x=(-15, 15),
-                    prob=p,
+                    prob=1,
                     keep_size=True,
                     padding_mode="reflection",
                 ),  # 随机旋转-15~15度
             ]
         )
-        # 保存下来看看
         if self.mode == "train":
             normalized_tensor = transforms(img_list).float()
         else:

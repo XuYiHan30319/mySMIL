@@ -32,6 +32,7 @@ class JointDataset(Dataset):
         # 去lung_dicom中找到对应的文件夹
         dicom_path = os.path.join(dicom_path, mode)
         self.list = []
+        self.mode = mode
         # 找出所有Tumor为LUAD的数据
         zero_num = 0
         one_num = 0
@@ -114,14 +115,15 @@ class JointDataset(Dataset):
         # 从pathology_path中找到随机一张图片
         pathology_files = os.listdir(pathology_path)
         pathology_file = np.random.choice(pathology_files)
+        pathology_file = os.path.join(pathology_path, pathology_file)
         array = np.array(Image.open(pathology_file))
         array = normalize(array)
         if self.mode == "train":
             transforms = A.Compose(
                 [
-                    A.Rotate(limit=15, p=self.p),
-                    A.HorizontalFlip(p=self.p),
-                    A.VerticalFlip(p=self.p),
+                    A.Rotate(limit=15, p=0.5),
+                    A.HorizontalFlip(p=0.5),
+                    A.VerticalFlip(p=0.5),
                 ]
             )
             transformed = np.array(transforms(image=array)["image"])
@@ -136,5 +138,4 @@ class JointDataset(Dataset):
 
 
 if __name__ == "__main__":
-    dataset = JointDataset()
-    print(dataset[0])
+    dataset = JointDataset(mode="train")
