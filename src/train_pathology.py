@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 from model.ResNet2d import generate_model
+from model.vit import vit_base_patch16_224
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from dataset.PathologyDataset import PathologyDataset
@@ -16,7 +17,8 @@ import numpy as np
 def train(path=""):
     torch.autograd.set_detect_anomaly(True)
     writer = SummaryWriter()
-    model = generate_model(50, 2)
+    # model = generate_model(50, 2)
+    model = vit_base_patch16_224(num_classes=2)
     if path != "":
         model.load_state_dict(torch.load(path))
         lunshu = int(path.split("_")[-1].split(".")[0])
@@ -27,16 +29,16 @@ def train(path=""):
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    initial_learning_rate = 1e-4
+    initial_learning_rate = 1e-3
     optimizer = optim.Adam(model.parameters(), initial_learning_rate, betas=(0.9, 0.99))
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.8)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.8)
     num_epochs = 5000
-    save_path = "../model/"  # 这里是保存路径
+    save_path = "../model/vit"  # 这里是保存路径
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     train_dataset = PathologyDataset()
     train_loader = DataLoader(
-        train_dataset, batch_size=128, shuffle=True, num_workers=16
+        train_dataset, batch_size=96, shuffle=True, num_workers=16
     )
     batchs = len(train_loader)
     for epoch in range(lunshu, num_epochs):
@@ -61,7 +63,7 @@ def train(path=""):
 
         print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss:.6f}")
         if (epoch + 1) % 10 == 0:
-            model_save_name = f"resnet50_epoch_{epoch + 1}.pth"
+            model_save_name = f"vit_epoch_{epoch + 1}.pth"
             if not os.path.exists(save_path):
                 os.makedirs(save_path)
             torch.save(model.state_dict(), os.path.join(save_path, model_save_name))
@@ -135,7 +137,7 @@ def eval_folder(path=""):
 
 
 if __name__ == "__main__":
-    # train("../model/resnet50_epoch_200.pth")
+    train("")
     # test()
     # eval()
-    eval_folder("../model/resnet50")
+    # eval_folder("../model/resnet50")

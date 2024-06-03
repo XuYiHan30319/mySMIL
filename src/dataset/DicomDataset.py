@@ -57,15 +57,11 @@ class Dataset3d(data.Dataset):
             # 如果图像是彩色的，计算最后一个维度（颜色通道）的平均值
             img_list = np.mean(img_list, axis=-1)
         img_list = normalize(img_list)
-        if self.img_list[index][1] == 0:
-            p = 0.6
-        else:
-            p = 0.3
         transforms = Compose(
             [
                 RandRotate(
                     range_x=(-15, 15),
-                    prob=1,
+                    prob=0,
                     keep_size=True,
                     padding_mode="reflection",
                 ),  # 随机旋转-15~15度

@@ -1,9 +1,6 @@
 import os
 import torch
 import numpy as np
-from ResNet2d import generate_model as generate_model2d
-from torch.utils.data import DataLoader
-from ResNet3d import generate_model as generate_model3d
 import torch.nn
 
 
@@ -14,10 +11,11 @@ class JointModel(torch.nn.Module):
         self.dicom_model = dicom_model
         self.fc1 = torch.nn.Linear(2048 * 2, 512)
         self.fc2 = torch.nn.Linear(512, 2)
+        self.relu = torch.nn.ReLU()
         self.dropout = torch.nn.Dropout()
 
         self.reconstruction = torch.nn.Sequential(
-            torch.nn.Linear(2045, 512),
+            torch.nn.Linear(2048, 512),
             torch.nn.ReLU(),
             torch.nn.Linear(512, 2),
         )
@@ -28,8 +26,8 @@ class JointModel(torch.nn.Module):
 
     def forward(self, x3d, x2d=None, pathology_mean=None, mode="two"):
         if mode == "two":  # 全模态的训练
-            x2d = self.pathology_model(x2d)
-            x3d = self.dicom_model(x3d)
+            x2d = self.pathology_model(x2d, mode="two")
+            x3d = self.dicom_model(x3d, mode="two")
             x = torch.cat([x2d, x3d], dim=1)
             x = self.fc1(x)
             x = self.dropout(x)
@@ -38,9 +36,9 @@ class JointModel(torch.nn.Module):
         elif mode == "one":  # 只有3d的训练
             assert pathology_mean is not None
             assert x2d is None
-            x3d = self.dicom_model(x3d)
+            x3d = self.dicom_model(x3d, mode="two")
 
-            # pathology_mean的形状为2048,2,扩展一个维度，用于向量乘法
+            # pathology_mean的形状为2,2048,扩展一个维度，用于向量乘法
             pathology_mean = pathology_mean.expand(
                 x3d.shape[0], -1, -1
             )  # batchsize,2048,2
@@ -53,6 +51,7 @@ class JointModel(torch.nn.Module):
             # 最后的分类
             x = torch.concat([x3d, pathology_feature], dim=1)
             x = self.fc1(x)
+            x = self.relu(x)
             x = self.dropout(x)
             x = self.fc2(x)
             return x

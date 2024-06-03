@@ -29,11 +29,11 @@ def train(path=""):
 
     criterion = nn.CrossEntropyLoss()
     criterion2 = sigmoid_focal_loss
-    initial_learning_rate = 4e-5
+    initial_learning_rate = 3e-4
     optimizer = optim.Adam(
         model.parameters(), initial_learning_rate, betas=(0.9, 0.99), weight_decay=0.001
     )
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.8)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.8)
     num_epochs = 5000
     save_path = "../model/resnet503d/"  # 这里是保存路径
     if not os.path.exists(save_path):
@@ -42,11 +42,10 @@ def train(path=""):
     test_dataset = Dataset3d("../data/lung_dicom", "test")
     test_loader = DataLoader(test_dataset, batch_size=4, shuffle=True, num_workers=16)
 
-    train_dataset = Dataset3d(path="../data/lung_dicom", rand=True)
+    train_dataset = Dataset3d(path="../data/lung_dicom")
     train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, num_workers=16)
     batchs = len(train_loader)
     for epoch in range(lunshu, num_epochs):
-
         model.train()
         running_loss = 0.0
         with tqdm(
@@ -58,11 +57,11 @@ def train(path=""):
                 classification_output = model(data)
                 loss = criterion(classification_output, target)
                 # 对target进行onehot编码
-                target = torch.nn.functional.one_hot(target, num_classes=2).float()
-                loss2 = criterion2(
-                    classification_output, target, alpha=0.6, gamma=2, reduction="mean"
-                )
-                loss = loss + loss2
+                # target = torch.nn.functional.one_hot(target, num_classes=2).float()
+                # loss2 = criterion2(
+                #     classification_output, target, alpha=0.8, gamma=2, reduction="mean"
+                # )
+                # loss = loss + loss2
                 loss.backward()
                 optimizer.step()
                 running_loss += loss.item() * data.size(0)
@@ -179,12 +178,7 @@ def eval_folder(path=""):
 
 
 if __name__ == "__main__":
-    # train("../model/resnet503d/resnet503d_epoch_250.pth")
+    train()
     # test()
     # eval("../model/resnet503d/resnet503d_epoch_100.pth")
-    eval_folder("../model/resnet503d")
-    
-# ../model/resnet503d/resnet503d_epoch_380.pth
-# Overall Accuracy: 0.7188
-# Class 0 Accuracy: 0.7333
-# Class 1 Accuracy: 0.7143
+    # eval_folder("../model/resnet503d")
