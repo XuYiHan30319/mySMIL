@@ -5,7 +5,13 @@ import torch.nn
 
 
 class JointModel(torch.nn.Module):
-    def __init__(self, pathology_model, dicom_model, extractor_grad=False):
+    def __init__(
+        self,
+        pathology_model,
+        dicom_model,
+        pathology_model_extractor_grad=False,
+        dicom_model_extractor_grad=False,
+    ):
         super(JointModel, self).__init__()
         self.pathology_model = pathology_model
         self.dicom_model = dicom_model
@@ -17,11 +23,15 @@ class JointModel(torch.nn.Module):
         self.reconstruction = torch.nn.Sequential(
             torch.nn.Linear(2048, 512),
             torch.nn.ReLU(),
-            torch.nn.Linear(512, 2),
+            torch.nn.Linear(512, 20),
         )
-        if not extractor_grad:  # 不训练病理特征提取器
-
+        
+        if not pathology_model_extractor_grad:  # 不训练病理特征提取器
             for p in self.pathology_model.parameters():
+                p.requires_grad_(False)
+
+        if not dicom_model_extractor_grad:
+            for p in self.dicom_model.parameters():
                 p.requires_grad_(False)
 
     def forward(self, x3d, x2d=None, pathology_mean=None, mode="two"):

@@ -29,7 +29,7 @@ def train(path=""):
 
     criterion = nn.CrossEntropyLoss()
     criterion2 = sigmoid_focal_loss
-    initial_learning_rate = 3e-4
+    initial_learning_rate = (3e-4) * 0.8 ** (lunshu // 20)
     optimizer = optim.Adam(
         model.parameters(), initial_learning_rate, betas=(0.9, 0.99), weight_decay=0.001
     )
@@ -104,7 +104,7 @@ def train(path=""):
                 accuracy = accuracy_score(class_targets, class_predictions)
                 print(f"Class {class_index} Accuracy: {accuracy:.4f}")
 
-        if (epoch + 1) % 5 == 0:
+        if (epoch + 1) % 1 == 0:
             model_save_name = f"resnet503d_epoch_{epoch + 1}.pth"
             if not os.path.exists(save_path):
                 os.makedirs(save_path)
@@ -178,7 +178,7 @@ def eval_folder(path=""):
 
 
 if __name__ == "__main__":
-    train()
+    # train("../model/resnet503d/resnet503d_epoch_180.pth")
     # test()
-    # eval("../model/resnet503d/resnet503d_epoch_100.pth")
+    eval("../model/resnet503d/resnet503d_epoch_193_best.pth")
     # eval_folder("../model/resnet503d")

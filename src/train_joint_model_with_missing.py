@@ -16,7 +16,7 @@ import numpy as np
 
 def train(
     path="",
-    model3d_path="../model/resnet503d/resnet503d_epoch_380_best.pth",
+    model3d_path="../model/resnet503d/resnet503d_epoch_193_best.pth",
     model2d_path="../model/resnet50/resnet50_epoch_best_210.pth",
     kmeans_path="../model/kmeans.pth",
 ):
@@ -24,7 +24,9 @@ def train(
     writer = SummaryWriter()
     center = torch.load(kmeans_path)
     center = torch.from_numpy(center).float().to("cuda:0").T
-    model = JointModel(generate_model2d(50), generate_model3d(50))
+    model = JointModel(
+        generate_model2d(50), generate_model3d(50), dicom_model_extractor_grad=False
+    )
     if path != "":
         model.load_state_dict(torch.load(path))
         lunshu = int(path.split("_")[-1].split(".")[0])
@@ -39,7 +41,7 @@ def train(
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     criterion = nn.CrossEntropyLoss()
-    initial_learning_rate = 5e-5
+    initial_learning_rate = 1e-3
     optimizer = optim.Adam(
         model.parameters(), initial_learning_rate, betas=(0.9, 0.99), weight_decay=0.001
     )
@@ -128,5 +130,58 @@ def train(
     writer.close()
 
 
+def eval(
+    model_path="",
+    kmeans_path="../model/kmeans.pth",
+):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    center = torch.load(kmeans_path)
+    center = torch.from_numpy(center).float().to("cuda:0").T
+    # 载入模型
+    model = JointModel(
+        generate_model2d(50), generate_model3d(50), dicom_model_extractor_grad=False
+    )
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model = model.to(device)
+    model.eval()
+
+    # 载入数据集
+    eval_dataset = Dataset3d(
+        path="../data/lung_dicom", mode="train"
+    )  # 这里传入数据集路径
+    eval_loader = DataLoader(eval_dataset, batch_size=4, shuffle=False, num_workers=16)
+
+    # 准备评价指标
+    all_targets = []
+    all_predictions = []
+
+    with torch.no_grad():
+        for data, target in eval_loader:
+            data, target = data.to(device), target.to(device)
+            outputs = model(data, mode="one", pathology_mean=center)
+            _, predicted = torch.max(outputs, 1)
+
+            all_targets.extend(target.cpu().numpy())
+            all_predictions.extend(predicted.cpu().numpy())
+
+    # 计算每个类的准确率
+    all_targets = np.array(all_targets)
+    all_predictions = np.array(all_predictions)
+    print(model_path)
+
+    # 计算整体准确率
+    overall_accuracy = accuracy_score(all_targets, all_predictions)
+    print(f"Overall Accuracy: {overall_accuracy:.4f}")
+
+    # 计算每个类的准确率
+    for class_index in range(2):
+        class_mask = all_targets == class_index
+        class_targets = all_targets[class_mask]
+        class_predictions = all_predictions[class_mask]
+        accuracy = accuracy_score(class_targets, class_predictions)
+        print(f"Class {class_index} Accuracy: {accuracy:.4f}")
+
+
 if __name__ == "__main__":
-    train(path="../model/joint_Path/Joint_epoch_70.pth", model3d_path="")
+    train(path="", model3d_path="../model/resnet503d/resnet503d_epoch_193_best.pth")
+    # eval()

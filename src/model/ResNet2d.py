@@ -202,6 +202,9 @@ class ResNet(nn.Module):
         Args:
             mode (str, optional): _description_. Defaults to "one",one就是正常训练,two是去掉分类层,到时候统一进行concat.
         """
+        if mode == "three":
+            x = self.fc(x)
+            return x
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)

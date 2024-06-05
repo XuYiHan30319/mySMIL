@@ -24,7 +24,16 @@ def get_feature_kmeans(
         for feature in features:
             feature_list.append(feature.cpu().detach().numpy())
     # 聚类
-    kmeans = KMeans(n_clusters=2, random_state=0).fit(feature_list)
+    kmeans = KMeans(n_clusters=20, random_state=0).fit(feature_list)
+    # 通过model预测中心点的类别
+    center = model(
+        torch.from_numpy(kmeans.cluster_centers_).float().to(device), mode="three"
+    )
+    center = torch.argmax(center, dim=1)
+    print(center)
+
+    center = torch.tensor(center)
+
     # 保存中心点
     torch.save(kmeans.cluster_centers_, save_path)
 
@@ -34,6 +43,6 @@ def read_kmeans(save_path="../model/kmeans.pth"):
 
 
 if __name__ == "__main__":
-    # get_feature_kmeans()
-    centers = read_kmeans()
-    print(centers)
+    get_feature_kmeans()
+    # centers = read_kmeans()
+    # print(centers)

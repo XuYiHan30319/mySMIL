@@ -61,7 +61,7 @@ class Dataset3d(data.Dataset):
             [
                 RandRotate(
                     range_x=(-15, 15),
-                    prob=0,
+                    prob=0.5,
                     keep_size=True,
                     padding_mode="reflection",
                 ),  # 随机旋转-15~15度
