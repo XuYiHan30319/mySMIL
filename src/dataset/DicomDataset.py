@@ -25,7 +25,6 @@ class Dataset3d(data.Dataset):
         self,
         path="../../data/lung_dicom",
         mode="train",
-        rand=False,
     ):
         self.mode = mode
         self.img_list = []
@@ -39,11 +38,7 @@ class Dataset3d(data.Dataset):
         for root, dirs, files in os.walk(os.path.join(path, "1")):
             for file in files:
                 if file.endswith(".nii"):
-                    if mode == "train" and rand:
-                        if np.random.rand() < 0.3:
-                            self.img_list.append([os.path.join(root, file), 1])
-                    else:
-                        self.img_list.append([os.path.join(root, file), 1])
+                    self.img_list.append([os.path.join(root, file), 1])
         print("1的个数为:", len(self.img_list) - l)
 
     def __len__(self):
@@ -67,7 +62,7 @@ class Dataset3d(data.Dataset):
                 ),  # 随机旋转-15~15度
             ]
         )
-        if self.mode == "train":
+        if self.mode == "train" and self.img_list[index][1] == 0:
             normalized_tensor = transforms(img_list).float()
         else:
             normalized_tensor = img_list
@@ -79,6 +74,6 @@ class Dataset3d(data.Dataset):
 
 
 if __name__ == "__main__":
-    data = Dataset3d()
+    data = Dataset3d(mode="train")
     print(data[0][0].shape)
     print(data[0][1])

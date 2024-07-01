@@ -68,5 +68,5 @@ class PathologyDataset(data.Dataset):
 
 
 if __name__ == "__main__":
-    data = PathologyDataset("../../data/pathology_img_data/train")
+    data = PathologyDataset("../../data/pathology_img_data","test")
     print(data.__len__())
