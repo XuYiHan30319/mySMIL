@@ -24,7 +24,7 @@ def get_feature_kmeans(
         for feature in features:
             feature_list.append(feature.cpu().detach().numpy())
     # 聚类
-    kmeans = KMeans(n_clusters=20, random_state=0).fit(feature_list)
+    kmeans = KMeans(n_clusters=10, random_state=0).fit(feature_list)
     # 通过model预测中心点的类别
     center = model(
         torch.from_numpy(kmeans.cluster_centers_).float().to(device), mode="three"

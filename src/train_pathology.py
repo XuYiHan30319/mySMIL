@@ -29,7 +29,7 @@ def train(path=""):
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    initial_learning_rate = 1e-3
+    initial_learning_rate = 1e-3 * (0.8 ** (lunshu // 10))
     optimizer = optim.Adam(model.parameters(), initial_learning_rate, betas=(0.9, 0.99))
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.8)
     num_epochs = 5000
@@ -40,6 +40,10 @@ def train(path=""):
     train_loader = DataLoader(
         train_dataset, batch_size=96, shuffle=True, num_workers=16
     )
+
+    test_dataset = PathologyDataset(mode="test")
+    test_loader = DataLoader(test_dataset, batch_size=96, shuffle=True, num_workers=16)
+
     batchs = len(train_loader)
     for epoch in range(lunshu, num_epochs):
         model.train()
@@ -61,8 +65,32 @@ def train(path=""):
         scheduler.step()
         epoch_loss = running_loss / len(train_loader.dataset)
 
+        model.eval()
+        all_targets = []
+        all_predictions = []
+        with torch.no_grad():
+            for data, target in test_loader:
+                data, target = data.to(device), target.to(device)
+                outputs = model(data)
+                _, predicted = torch.max(outputs, 1)
+
+                all_targets.extend(target.cpu().numpy())
+                all_predictions.extend(predicted.cpu().numpy())
+        all_targets = np.array(all_targets)
+        all_predictions = np.array(all_predictions)
+        overall_accuracy = accuracy_score(all_targets, all_predictions)
+        print(f"Overall Accuracy: {overall_accuracy:.4f}")
+
+        # 计算每个类的准确率
+        for class_index in range(2):
+            class_mask = all_targets == class_index
+            class_targets = all_targets[class_mask]
+            class_predictions = all_predictions[class_mask]
+            accuracy = accuracy_score(class_targets, class_predictions)
+            print(f"Class {class_index} Accuracy: {accuracy:.4f}")
+
         print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss:.6f}")
-        if (epoch + 1) % 10 == 0:
+        if (epoch + 1) % 1 == 0:
             model_save_name = f"vit_epoch_{epoch + 1}.pth"
             if not os.path.exists(save_path):
                 os.makedirs(save_path)

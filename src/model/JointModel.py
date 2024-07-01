@@ -23,9 +23,10 @@ class JointModel(torch.nn.Module):
         self.reconstruction = torch.nn.Sequential(
             torch.nn.Linear(2048, 512),
             torch.nn.ReLU(),
+            torch.nn.Dropout(),
             torch.nn.Linear(512, 20),
         )
-        
+
         if not pathology_model_extractor_grad:  # 不训练病理特征提取器
             for p in self.pathology_model.parameters():
                 p.requires_grad_(False)
@@ -52,12 +53,11 @@ class JointModel(torch.nn.Module):
             pathology_mean = pathology_mean.expand(
                 x3d.shape[0], -1, -1
             )  # batchsize,2048,2
-            weight = self.reconstruction(x3d).unsqueeze(-1)  # batch_size,2,1
-            pathology_feature = pathology_mean @ weight  # bathc_size,2048,1
+            weight = self.reconstruction(x3d).unsqueeze(-1) 
+            pathology_feature = pathology_mean @ weight  
             for i in range(pathology_feature.shape[0]):
                 pathology_feature[i] = pathology_feature[i].clone() / weight.sum(1)[i]
             pathology_feature = pathology_feature.view(pathology_feature.shape[0], -1)
-
             # 最后的分类
             x = torch.concat([x3d, pathology_feature], dim=1)
             x = self.fc1(x)
